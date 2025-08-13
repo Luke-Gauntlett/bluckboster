@@ -5,7 +5,7 @@ from tabs.actors import display_actors
 from tabs.films import display_film_details
 
 # Logo
-st.sidebar.image("images/logo.png", width=300)
+st.sidebar.image("images/Logo.png", width=300)
 
 # Title
 st.sidebar.title("BluckBoster")
