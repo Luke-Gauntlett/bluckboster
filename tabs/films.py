@@ -1,5 +1,5 @@
 import pandas as pd
-
+import streamlit as st
 ## --------------------------------------- READ FROM CSV ---------------------------------------
 
 # Load the CSV file - it runs faster (comment out the sql part for now)
