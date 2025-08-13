@@ -1,42 +1,42 @@
 import pandas as pd
 import streamlit as st
-## --------------------------------------- READ FROM CSV ---------------------------------------
 
-# Load the CSV file - it runs faster (comment out the sql part for now)
+# --------------------------------------- READ FROM CSV ---------------------------------------
 df_loaded = pd.read_csv("extract/output.csv")
 
-# Preview the result of csv
-df_loaded.info()
-
 def display_film_details():
-    
     st.header("Search for film details")
-    
-    # Movie and city selection (with placeholder option)
+
+    # Dropdowns with placeholder
     movies = ["-- Select a movie --"] + df_loaded['title'].dropna().drop_duplicates().sort_values().tolist()
     selected_title = st.selectbox("Select a movie", movies)
 
     cities = ["-- Select a city --"] + df_loaded['store_city'].dropna().drop_duplicates().sort_values().tolist()
-    selected_city = st.selectbox("Select a city", cities)
+    selected_city = st.selectbox("Select a city (optional)", cities)
 
-    # Only run if both selections are made
-    if selected_title != "-- Select a movie --" and selected_city != "-- Select a city --":
+    # Only run if a movie is chosen
+    if selected_title != "-- Select a movie --":
 
-        # Filter for selected city and movie
-        city_movie_df = df_loaded[
-            (df_loaded['store_city'] == selected_city) &
-            (df_loaded['title'] == selected_title)
-        ]
+        # Filter based on movie (and city if chosen)
+        if selected_city != "-- Select a city --":
+            city_movie_df = df_loaded[
+                (df_loaded['store_city'] == selected_city) &
+                (df_loaded['title'] == selected_title)
+            ]
+        else:
+            city_movie_df = df_loaded[
+                df_loaded['title'] == selected_title
+            ]
 
         if not city_movie_df.empty:
-            # Check availability per copy
+            # Mark availability
             city_movie_df['available'] = city_movie_df.apply(
                 lambda row: pd.isna(row['rental_date']) or pd.notna(row['return_date']),
                 axis=1
             )
             is_available = city_movie_df['available'].any()
 
-            # Display movie details
+            # Show movie info
             st.subheader(selected_title)
             st.text(f"Category: {city_movie_df.iloc[0]['category_name']}")
             st.text(f"Rating: {city_movie_df.iloc[0]['rating']}")
@@ -45,7 +45,7 @@ def display_film_details():
             st.text(f"Description: {city_movie_df.iloc[0]['description']}")
             st.text(f"Price: £{city_movie_df.iloc[0]['amount']}")
 
-            # Show how many copies are available at each store
+            # Group store availability
             store_summary = city_movie_df.groupby('store_address')['available'].agg(['sum', 'count']).reset_index()
             store_summary.rename(columns={'sum': 'available', 'count': 'total'}, inplace=True)
 
@@ -53,9 +53,9 @@ def display_film_details():
                 address = store_summary.loc[i, 'store_address']
                 available = int(store_summary.loc[i, 'available'])
                 total = int(store_summary.loc[i, 'total'])
-                st.text(f"Available copies in {selected_city} - {address}: {available} / {total}")
+                st.text(f"Available copies - {address}: {available} / {total}")
 
-            # Suggest similar movies if not available
+            # Suggestions if unavailable
             if not is_available:
                 st.warning("This movie is currently not available. Here are some suggestions:")
                 selected_movie_row = city_movie_df.iloc[0]
@@ -72,4 +72,5 @@ def display_film_details():
                 else:
                     st.text("No similar movies available.")
         else:
-            st.text(f"The movie '{selected_title}' is not available in {selected_city}.")
+            st.text(f"No copies of '{selected_title}' found in the selected location.")
+
